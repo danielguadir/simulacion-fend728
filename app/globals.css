@@ -167,6 +167,7 @@
 .blueprint-summary-badges strong{font-size:17px;color:var(--mint)}
 
 /* Selector de Terreno 3D (Camino Agrícola / Potrero con Plantas / Piso CAD) + Botón Ojo Día/Noche */
+.scene-stage,.tractor-hud-right,.top-dropdown-bar,.camera-presets-bar,.scene-toolbar{-webkit-user-select:none;user-select:none}
 .hud-eye-daynight-btn{display:flex;align-items:center;gap:5px;padding:7px 10px;border-radius:9px;border:1px solid #355844;background:rgba(16,32,25,.9);color:#e4f7ea;font-size:11px;font-weight:800;box-shadow:0 4px 12px rgba(0,0,0,.35);transition:.18s}
 .hud-eye-daynight-btn:hover{border-color:var(--mint);transform:translateY(-1px)}
 .hud-eye-daynight-btn.day{background:linear-gradient(135deg,#fff8db,#d9f2e1);border-color:#72c752;color:#14361d;box-shadow:0 4px 14px rgba(114,199,82,.35)}
