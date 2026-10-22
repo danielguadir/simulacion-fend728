@@ -7,9 +7,11 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  Compass,
   Disc,
   Eye,
   EyeOff,
+  Leaf,
   Lightbulb,
   Link2,
   Link2Off,
@@ -20,6 +22,7 @@ import {
 } from "lucide-react";
 import type { TurnSignalState, CameraViewMode } from "@/components/TractorSchematic3D";
 import type { DiscCount } from "@/components/RearDiscAttachment3D";
+import type { TerrainMode } from "@/components/TractorTerrain3D";
 
 type Props = {
   engineOn: boolean;
@@ -38,6 +41,8 @@ type Props = {
   setRearDiscHidden: React.Dispatch<React.SetStateAction<boolean>>;
   discCount: DiscCount;
   setDiscCount: React.Dispatch<React.SetStateAction<DiscCount>>;
+  terrainMode: TerrainMode;
+  setTerrainMode: React.Dispatch<React.SetStateAction<TerrainMode>>;
   onFocusImplement: () => void;
   viewMode: CameraViewMode;
 };
@@ -64,6 +69,8 @@ export default function TractorControlDeck({
   setRearDiscHidden,
   discCount,
   setDiscCount,
+  terrainMode,
+  setTerrainMode,
   onFocusImplement,
 }: Props) {
   const [configOpen, setConfigOpen] = useState(false);
@@ -269,6 +276,40 @@ export default function TractorControlDeck({
           >
             <ArrowRight size={17} />
           </button>
+        </div>
+
+        {/* ESCENARIO / TERRENO 3D: CAMINO AGRÍCOLA vs POTRERO CON PLANTAS vs PISO CAD */}
+        <div className="hud-terrain-box" role="group" aria-label="Selector de terreno 3D">
+          <span className="hud-terrain-label">TERRENO 3D</span>
+          <div className="hud-terrain-btns">
+            <button
+              type="button"
+              className={`hud-terrain-btn road ${terrainMode === "road" ? "active" : ""}`}
+              onClick={() => setTerrainMode((m) => (m === "road" ? "grid" : "road"))}
+              title="Activar camino rural agrícola 3D con huellas y postes"
+            >
+              <Compass size={13} />
+              <span>Camino</span>
+            </button>
+            <button
+              type="button"
+              className={`hud-terrain-btn pasture ${terrainMode === "pasture" ? "active" : ""}`}
+              onClick={() => setTerrainMode((m) => (m === "pasture" ? "grid" : "pasture"))}
+              title="Activar potrero agrícola 3D con plantas forrajeras y surcos"
+            >
+              <Leaf size={13} />
+              <span>Potrero con Plantas</span>
+            </button>
+          </div>
+          {terrainMode !== "grid" && (
+            <button
+              type="button"
+              className="hud-terrain-reset"
+              onClick={() => setTerrainMode("grid")}
+            >
+              Volver a Piso Cuadrícula CAD
+            </button>
+          )}
         </div>
       </div>
 

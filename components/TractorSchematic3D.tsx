@@ -8,6 +8,7 @@ import type { DimensionId, Variant } from "@/lib/specs";
 import { asNumber, tireFor, tireGeometry, tractorDimensions } from "@/lib/specs";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import RearDiscAttachment3D, { DiscCount } from "@/components/RearDiscAttachment3D";
+import TractorTerrain3D, { TerrainMode } from "@/components/TractorTerrain3D";
 
 export type CameraViewMode =
   | "iso"
@@ -41,6 +42,7 @@ type Props = {
   rearDiscAssembled: boolean;
   rearDiscHidden?: boolean;
   discCount: DiscCount;
+  terrainMode?: TerrainMode;
 };
 
 // Exact official dimensions in meters (1 unit = 1 meter)
@@ -730,140 +732,6 @@ function TractorModel({
   );
 }
 
-/**
- * Moving & Rotating Checkered Ground Grid ("piso en cuadritos")
- * Visibly rotates and scrolls when steering Left/Right and driving Forward/Reverse.
- */
-function MovingGroundGrid({
-  blueprintMode,
-  driveSpeed,
-  steerAngle,
-  spinWheels,
-}: {
-  blueprintMode: boolean;
-  driveSpeed: number;
-  steerAngle: number;
-  spinWheels: boolean;
-}) {
-  const yawGroupRef = useRef<THREE.Group>(null);
-  const scrollGroupRef = useRef<THREE.Group>(null);
-
-  // Precompute alternating 1m x 1m checkered floor tiles (period = 2.0m in X and Z)
-  const checkerTiles = useMemo(() => {
-    const tiles: [number, number][] = [];
-    for (let ix = -12; ix < 12; ix++) {
-      for (let iz = -12; iz < 12; iz++) {
-        if ((ix + iz) % 2 === 0) {
-          tiles.push([ix + 0.5, iz + 0.5]);
-        }
-      }
-    }
-    return tiles;
-  }, []);
-
-  // Curved steering trajectory arcs in front of the front wheels when turning left/right
-  const steerArcs = useMemo(() => {
-    if (Math.abs(steerAngle) < 0.04) return null;
-    const sign = Math.sign(steerAngle); // +1 = left (+Z), -1 = right (-Z)
-    const leftPts: [number, number, number][] = [];
-    const rightPts: [number, number, number][] = [];
-    for (let i = 0; i <= 14; i++) {
-      const t = i / 14;
-      const dist = t * 4.2;
-      const curveZ = sign * (t * t) * 1.65;
-      leftPts.push([X_FRONT_AXLE - dist, 0.012, -1.05 + curveZ]);
-      rightPts.push([X_FRONT_AXLE - dist, 0.012, 1.05 + curveZ]);
-    }
-    return { leftPts, rightPts };
-  }, [steerAngle]);
-
-  useFrame((_, delta) => {
-    const effectiveSpeed = driveSpeed !== 0 ? driveSpeed : spinWheels ? 0.55 : 0;
-    // Even if stationary when user clicks Left/Right, provide visible turning motion on the floor
-    const turnMotion =
-      Math.abs(effectiveSpeed) > 0.02
-        ? effectiveSpeed
-        : Math.abs(steerAngle) > 0.05
-        ? 0.95
-        : 0;
-
-    if (yawGroupRef.current && Math.abs(steerAngle) > 0.01 && Math.abs(turnMotion) > 0.01) {
-      // Tractor turning Left (+steerAngle) -> floor rotates clockwise (-Y) relative to tractor
-      yawGroupRef.current.rotation.y -= steerAngle * turnMotion * delta * 0.95;
-    }
-
-    if (scrollGroupRef.current && (Math.abs(effectiveSpeed) > 0.01 || Math.abs(turnMotion) > 0.01)) {
-      const linearV = Math.abs(effectiveSpeed) > 0.01 ? effectiveSpeed : turnMotion * 0.7;
-      // World-space displacement of the ground relative to tractor (tractor faces -X)
-      const dWorldX = linearV * delta * 1.85;
-      const dWorldZ = -steerAngle * linearV * delta * 1.15;
-
-      const psi = yawGroupRef.current ? yawGroupRef.current.rotation.y : 0;
-      const cosP = Math.cos(psi);
-      const sinP = Math.sin(psi);
-
-      // Transform world displacement into yawGroupRef local coordinates
-      const dx = dWorldX * cosP - dWorldZ * sinP;
-      const dz = dWorldX * sinP + dWorldZ * cosP;
-
-      const nextX = scrollGroupRef.current.position.x + dx;
-      const nextZ = scrollGroupRef.current.position.z + dz;
-
-      // Wrap seamlessly modulo 2.0m (exact period of the 1m/2m checkered grid)
-      scrollGroupRef.current.position.x = ((((nextX + 1.0) % 2.0) + 2.0) % 2.0) - 1.0;
-      scrollGroupRef.current.position.z = ((((nextZ + 1.0) % 2.0) + 2.0) % 2.0) - 1.0;
-    }
-  });
-
-  const cellColor = blueprintMode ? "#1f5444" : "#274139";
-  const sectionColor = blueprintMode ? "#389e77" : "#447451";
-  const majorColor = blueprintMode ? "#5ce1e6" : "#68b653";
-  const tileColor = blueprintMode ? "#0e2922" : "#152621";
-
-  return (
-    <group>
-      {/* Dynamic Curved Steering Path Guides when turning Left or Right */}
-      {steerArcs && (
-        <group>
-          <Line
-            points={steerArcs.leftPts}
-            color="#ffaa00"
-            lineWidth={2.2}
-            dashed
-            dashSize={0.18}
-            gapSize={0.12}
-          />
-          <Line
-            points={steerArcs.rightPts}
-            color="#ffaa00"
-            lineWidth={2.2}
-            dashed
-            dashSize={0.18}
-            gapSize={0.12}
-          />
-        </group>
-      )}
-
-      <group ref={yawGroupRef}>
-        <group ref={scrollGroupRef}>
-          {/* 1m x 1m Fine Grid Squares */}
-          <gridHelper args={[32, 32, sectionColor, cellColor]} position={[0, 0.001, 0]} />
-          {/* 2m x 2m Major Grid Squares */}
-          <gridHelper args={[32, 16, majorColor, sectionColor]} position={[0, 0.003, 0]} />
-
-          {/* Alternating Checkered Floor Squares ("Piso en cuadritos") */}
-          {checkerTiles.map(([tx, tz], idx) => (
-            <mesh key={idx} position={[tx, -0.002, tz]} rotation={[-Math.PI / 2, 0, 0]}>
-              <planeGeometry args={[0.96, 0.96]} />
-              <meshBasicMaterial color={tileColor} transparent opacity={0.42} />
-            </mesh>
-          ))}
-        </group>
-      </group>
-    </group>
-  );
-}
-
 function DimensionLine3D({
   id,
   start,
@@ -1332,6 +1200,7 @@ export default function TractorSchematic3D({
   rearDiscAssembled,
   rearDiscHidden = false,
   discCount,
+  terrainMode = "grid",
 }: Props) {
   const frontSpec = useMemo(() => tireFor("front", tireVariant), [tireVariant]);
   const rearSpec = useMemo(() => tireFor("rear", tireVariant), [tireVariant]);
@@ -1350,6 +1219,14 @@ export default function TractorSchematic3D({
   const zRearCenter = zOuter - wRear / 2;
   const zFrontCenter = zOuter - wFront / 2 - 0.02;
 
+  const sceneBgColor = blueprintMode
+    ? "#081715"
+    : terrainMode === "pasture"
+    ? "#0f1e14"
+    : terrainMode === "road"
+    ? "#141a18"
+    : "#0e1918";
+
   return (
     <Canvas
       shadows
@@ -1357,8 +1234,8 @@ export default function TractorSchematic3D({
       camera={{ position: [-6.2, 3.6, 6.8], fov: 36 }}
       gl={{ antialias: true, alpha: true }}
     >
-      <color attach="background" args={[blueprintMode ? "#081715" : "#0e1918"]} />
-      <fog attach="fog" args={[blueprintMode ? "#081715" : "#0e1918", 11, 23]} />
+      <color attach="background" args={[sceneBgColor]} />
+      <fog attach="fog" args={[sceneBgColor, 11, 24]} />
 
       <ambientLight intensity={lightsOn ? 0.85 : 1.15} />
       <directionalLight
@@ -1425,11 +1302,13 @@ export default function TractorSchematic3D({
         onSelectTireAxle={onSelectTireAxle}
       />
 
-      <MovingGroundGrid
+      <TractorTerrain3D
+        terrainMode={terrainMode}
         blueprintMode={blueprintMode}
         driveSpeed={driveSpeed}
         steerAngle={steerAngle}
         spinWheels={spinWheels}
+        frontAxleX={X_FRONT_AXLE}
       />
 
       <ContactShadows

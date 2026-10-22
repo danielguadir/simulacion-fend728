@@ -166,6 +166,17 @@
 .blueprint-summary-badges span{display:block;font-size:10px;color:#9ab59e;margin-bottom:4px}
 .blueprint-summary-badges strong{font-size:17px;color:var(--mint)}
 
+/* Selector de Terreno 3D (Camino Agrícola / Potrero con Plantas / Piso CAD) */
+.hud-terrain-box{margin-top:8px;padding-top:8px;border-top:1px solid rgba(114,185,134,.25);display:flex;flex-direction:column;gap:5px}
+.hud-terrain-label{font-size:8.5px;font-weight:800;letter-spacing:.7px;color:#9dc4a7;text-transform:uppercase}
+.hud-terrain-btns{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.hud-terrain-btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:6px 7px;border-radius:7px;border:1px solid #355844;background:#13261e;color:#d8efe0;font-size:10px;font-weight:700;line-height:1.15;transition:.16s}
+.hud-terrain-btn:hover{border-color:var(--mint);background:#1a3529}
+.hud-terrain-btn.road.active{background:linear-gradient(135deg,#b47b38,#8c5820);border-color:#f5be6b;color:#fff8eb;box-shadow:0 0 12px rgba(245,190,107,.35)}
+.hud-terrain-btn.pasture.active{background:linear-gradient(135deg,#2e8538,#4fb83b);border-color:#b7f789;color:#f4ffef;box-shadow:0 0 12px rgba(119,224,90,.4)}
+.hud-terrain-reset{padding:4px 6px;border-radius:6px;border:1px dashed #3d634d;background:rgba(15,31,24,.75);color:#b5d6be;font-size:9.5px;font-weight:700}
+.hud-terrain-reset:hover{border-color:var(--mint);color:#fff}
+
 /* Ficha Técnica Oficial & Fuentes Modal (Light Grey + White + Fendt Green Theme) */
 .top-sources.active{background:var(--mint);color:#0b1f0d;border-color:var(--mint);font-weight:800}
 .ficha-modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(7,16,13,.68);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px}

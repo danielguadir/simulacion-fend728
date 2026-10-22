@@ -13,6 +13,7 @@ import {
 } from "@/lib/specs";
 import type { CameraViewMode, SelectedDimState, TurnSignalState } from "@/components/TractorSchematic3D";
 import type { DiscCount } from "@/components/RearDiscAttachment3D";
+import type { TerrainMode } from "@/components/TractorTerrain3D";
 import TractorControlDeck from "@/components/TractorControlDeck";
 
 const WheelScene = dynamic(() => import("@/components/WheelScene"), {
@@ -268,6 +269,7 @@ export default function Page() {
   const [rearDiscAssembled, setRearDiscAssembled] = useState(true);
   const [rearDiscHidden, setRearDiscHidden] = useState(false);
   const [discCount, setDiscCount] = useState<DiscCount>(6);
+  const [terrainMode, setTerrainMode] = useState<TerrainMode>("grid");
 
   const spec = useMemo(() => tireFor(axle, variant), [axle, variant]);
   const geom = useMemo(() => tireGeometry(spec), [spec]);
@@ -599,6 +601,7 @@ export default function Page() {
                 rearDiscAssembled={rearDiscAssembled}
                 rearDiscHidden={rearDiscHidden}
                 discCount={discCount}
+                terrainMode={terrainMode}
               />
 
               {/* HUD DERECHO DENTRO DEL DIV DEL TRACTOR: BOTÓN ENCENDER + RUEDITA DE CONFIGURACIÓN (MODAL LUCES/LASTRE) + FLECHAS DE CONDUCCIÓN */}
@@ -619,6 +622,8 @@ export default function Page() {
                 setRearDiscHidden={setRearDiscHidden}
                 discCount={discCount}
                 setDiscCount={setDiscCount}
+                terrainMode={terrainMode}
+                setTerrainMode={setTerrainMode}
                 onFocusImplement={() => setViewMode("implement")}
                 viewMode={viewMode}
               />
@@ -629,6 +634,23 @@ export default function Page() {
             </div>
 
             <div className="scene-toolbar">
+              <button
+                className={terrainMode === "road" ? "btn-active" : ""}
+                onClick={() => setTerrainMode((m) => (m === "road" ? "grid" : "road"))}
+              >
+                <Compass size={16}/> {terrainMode === "road" ? "Camino 3D: Activo" : "Activar Camino"}
+              </button>
+              <button
+                className={terrainMode === "pasture" ? "btn-active" : ""}
+                onClick={() => setTerrainMode((m) => (m === "pasture" ? "grid" : "pasture"))}
+              >
+                <Leaf size={16}/> {terrainMode === "pasture" ? "Potrero con Plantas: Activo" : "Potrero con Plantas"}
+              </button>
+              {terrainMode !== "grid" && (
+                <button onClick={() => setTerrainMode("grid")}>
+                  <RotateCcw size={16}/> Piso Cuadrícula CAD
+                </button>
+              )}
               <button
                 className={selectedDim === "all" && showTireCotas ? "btn-active" : ""}
                 onClick={() => {
