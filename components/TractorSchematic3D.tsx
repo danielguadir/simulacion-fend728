@@ -10,6 +10,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import RearDiscAttachment3D, { DiscCount } from "@/components/RearDiscAttachment3D";
 import TractorTerrain3D, { TerrainMode } from "@/components/TractorTerrain3D";
 import TractorCabinInterior3D from "@/components/TractorCabinInterior3D";
+import TractorHoodDetails3D from "@/components/TractorHoodDetails3D";
 
 export type CameraViewMode =
   | "iso"
@@ -478,6 +479,13 @@ function TractorModel({
             />
           </mesh>
         ))}
+
+        {/* COMPONENTES DETALLADOS DEL CAPÓ Y MOTOR (MARCA "FENDT 728 VARIO", SISTEMA CAS CON VENTILADOR, BRANQUIAS LATERALES, PARRILLA Y TANQUES) */}
+        <TractorHoodDetails3D
+          engineOn={engineOn}
+          lightsOn={lightsOn}
+          blueprintMode={blueprintMode}
+        />
 
         {/* Volumetric Light Cones & Ground Illumination when Lights are ON */}
         {lightsOn && (
