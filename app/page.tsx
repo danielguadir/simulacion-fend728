@@ -258,7 +258,9 @@ export default function Page() {
   const [showTireCotas, setShowTireCotas] = useState(true);
   const [rightPanelMode, setRightPanelMode] = useState<"tractor" | "tires">("tractor");
   const [topCotasDropdownOpen, setTopCotasDropdownOpen] = useState(false);
-  const [showReferenceSheet, setShowReferenceSheet] = useState(true);
+  const [showIntroDetails, setShowIntroDetails] = useState(false);
+  const [showTireBreakdownSection, setShowTireBreakdownSection] = useState(false);
+  const [showReferenceSheet, setShowReferenceSheet] = useState(false);
 
   // Interactive Tractor Systems: Ignition, Lights, Driving, Steering, Turn Signals & Rear 4/6-Disc Implement
   const [engineOn, setEngineOn] = useState(true);
@@ -348,19 +350,40 @@ export default function Page() {
     </header>
 
     <main className="container" id="inicio">
-      <section className="intro">
-        <div><div className="eyebrow"><Sparkles size={13}/> INGENIERÍA DE MAQUINARIA AGRÍCOLA · ESQUEMA 3D ESCALABLE</div>
-          <h1>Fendt 728 Vario Gen7.1 <br/><span>en esquema 3D cotado.</span></h1>
-          <p>Explora en tres dimensiones las medidas oficiales del tractor (<b>5.516 mm</b> de longitud, <b>2.900 mm</b> de batalla, <b>2.650 mm</b> de anchura, alturas <b>3.280 / 3.332 mm</b> y despeje <b>570 mm</b>) y la geometría escalable de sus neumáticos homologados (<b>540/65 R34</b> + <b>650/85 R38</b> y opción <b>600/70 R30</b> + <b>710/70 R42</b>).</p>
+      <section className="intro-compact-wrapper">
+        <div className="intro-header-row">
+          <div>
+            <div className="eyebrow"><Sparkles size={13}/> INGENIERÍA DE MAQUINARIA AGRÍCOLA · SIMULACIÓN 3D ESCALABLE</div>
+            <h1>Fendt 728 Vario Gen7.1 <br/><span>en simulación 3D interactiva.</span></h1>
+          </div>
+          <button
+            type="button"
+            className={`toggle-sheet-btn collapsible-trigger ${showIntroDetails ? "open" : ""}`}
+            onClick={() => setShowIntroDetails((v) => !v)}
+            aria-expanded={showIntroDetails}
+          >
+            <span>{showIntroDetails ? "Ocultar resumen técnico" : "Desplegar resumen y ficha rápida"}</span>
+            <ChevronDown size={15} className={showIntroDetails ? "rot" : ""} />
+          </button>
         </div>
-        <div className="hero-figure" aria-hidden="true"><div className="hero-disc"><span>728</span><small>VARIO</small></div><span className="hero-corner">GEN 7.1 / 3D CAD</span></div>
-      </section>
 
-      <section className="overview-stats">
-        <div><span>LONGITUD / BATALLA</span><strong>5,52 / 2,90 <em>m · ficha oficial</em></strong></div>
-        <div><span>NEUMÁTICOS ESTÁNDAR</span><strong>R34 / R38 <em>540/65 · 650/85</em></strong></div>
-        <div><span>NEUMÁTICOS OPCIÓN 1</span><strong>R30 / R42 <em>600/70 · 710/70</em></strong></div>
-        <div><span>COMPRESOR VARIOGRIP</span><strong>800 <em>L/min · Gen7.1</em></strong></div>
+        {showIntroDetails && (
+          <div className="intro-collapsible-body">
+            <div className="intro">
+              <div>
+                <p>Explora en tres dimensiones las medidas oficiales del tractor (<b>5.516 mm</b> de longitud, <b>2.900 mm</b> de batalla, <b>2.650 mm</b> de anchura, alturas <b>3.280 / 3.332 mm</b> y despeje <b>570 mm</b>) y la geometría escalable de sus neumáticos homologados (<b>540/65 R34</b> + <b>650/85 R38</b> y opción <b>600/70 R30</b> + <b>710/70 R42</b>).</p>
+              </div>
+              <div className="hero-figure" aria-hidden="true"><div className="hero-disc"><span>728</span><small>VARIO</small></div><span className="hero-corner">GEN 7.1 / 3D CAD</span></div>
+            </div>
+
+            <section className="overview-stats">
+              <div><span>LONGITUD / BATALLA</span><strong>5,52 / 2,90 <em>m · ficha oficial</em></strong></div>
+              <div><span>NEUMÁTICOS ESTÁNDAR</span><strong>R34 / R38 <em>540/65 · 650/85</em></strong></div>
+              <div><span>NEUMÁTICOS OPCIÓN 1</span><strong>R30 / R42 <em>600/70 · 710/70</em></strong></div>
+              <div><span>COMPRESOR VARIOGRIP</span><strong>800 <em>L/min · Gen7.1</em></strong></div>
+            </section>
+          </div>
+        )}
       </section>
 
       <nav className="lab-nav" aria-label="Módulos del laboratorio">
@@ -707,92 +730,128 @@ export default function Page() {
           </div>
         </div>
 
-        {/* SECCIÓN INTEGRADA DE ESQUEMAS ESCALABLES DE NEUMÁTICOS (DELANTERO Y TRASERO) */}
-        <div className="tires-integrated-section">
-          <div className="reference-header">
+        {/* SECCIÓN INTEGRADA DE ESQUEMAS ESCALABLES DE NEUMÁTICOS (COMO DESPLEGABLE) */}
+        <div className="tires-integrated-section collapsible-panel">
+          <div
+            className="reference-header collapsible-header"
+            onClick={() => setShowTireBreakdownSection((v) => !v)}
+            role="button"
+            tabIndex={0}
+            aria-expanded={showTireBreakdownSection}
+          >
             <div>
               <span className="eyebrow">ESQUEMA TÉCNICO ESCALABLE DE NEUMÁTICOS · DATOS OFICIALES VERIFICADOS</span>
               <h3>
                 Desglose geométrico: Delantero ({frontSpec.key}) y Trasero ({rearSpec.key})
               </h3>
             </div>
-            <div className="two-buttons compact-switch">
-              <button
-                type="button"
-                className={variant === "standard" ? "selected" : ""}
-                onClick={() => setVariant("standard")}
-              >
-                Ver Estándar (540/65 R34 · 650/85 R38)
-              </button>
-              <button
-                type="button"
-                className={variant === "optional" ? "selected" : ""}
-                onClick={() => setVariant("optional")}
-              >
-                Ver Opción 1 (600/70 R30 · 710/70 R42)
-              </button>
-            </div>
+            <button
+              type="button"
+              className={`toggle-sheet-btn collapsible-trigger ${showTireBreakdownSection ? "open" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTireBreakdownSection((v) => !v);
+              }}
+            >
+              <span>{showTireBreakdownSection ? "Ocultar desglose geométrico" : "Desplegar desglose geométrico"}</span>
+              <ChevronDown size={15} className={showTireBreakdownSection ? "rot" : ""} />
+            </button>
           </div>
 
-          <div className="tire-schematics-dual-grid">
-            <ScalableTireSchematicSVG
-              title={`NEUMÁTICO DELANTERO ${variant === "standard" ? "ESTÁNDAR" : "OPCIÓN 1"}`}
-              specKey={frontSpec.key}
-              widthMm={frontSpec.widthMm}
-              aspect={frontSpec.aspect}
-              rimInches={frontSpec.rimInches}
-              sidewallMm={frontGeom.sidewallMm}
-              rimMm={frontGeom.rimMm}
-              diameterMm={frontGeom.nominalDiameterMm}
-              isRear={false}
-            />
-            <ScalableTireSchematicSVG
-              title={`NEUMÁTICO TRASERO ${variant === "standard" ? "ESTÁNDAR" : "OPCIÓN 1"}`}
-              specKey={rearSpec.key}
-              widthMm={rearSpec.widthMm}
-              aspect={rearSpec.aspect}
-              rimInches={rearSpec.rimInches}
-              sidewallMm={rearGeom.sidewallMm}
-              rimMm={rearGeom.rimMm}
-              diameterMm={rearGeom.nominalDiameterMm}
-              isRear={true}
-            />
-          </div>
+          {showTireBreakdownSection && (
+            <div className="collapsible-content-body">
+              <div className="two-buttons compact-switch" style={{ marginBottom: 16 }}>
+                <button
+                  type="button"
+                  className={variant === "standard" ? "selected" : ""}
+                  onClick={() => setVariant("standard")}
+                >
+                  Ver Estándar (540/65 R34 · 650/85 R38)
+                </button>
+                <button
+                  type="button"
+                  className={variant === "optional" ? "selected" : ""}
+                  onClick={() => setVariant("optional")}
+                >
+                  Ver Opción 1 (600/70 R30 · 710/70 R42)
+                </button>
+              </div>
 
-          {/* Tabla comparativa completa de las 4 configuraciones homologadas */}
-          <div className="all-tires-comparison-bar">
-            <div className="comparison-item">
-              <span className="eyebrow">DELANTERO ESTÁNDAR</span>
-              <strong>540/65 R34</strong>
-              <small>Ancho: 540 mm · Perfil: 351 mm · Llanta: 863,6 mm · Ø ≈ 1.566 mm</small>
+              <div className="tire-schematics-dual-grid">
+                <ScalableTireSchematicSVG
+                  title={`NEUMÁTICO DELANTERO ${variant === "standard" ? "ESTÁNDAR" : "OPCIÓN 1"}`}
+                  specKey={frontSpec.key}
+                  widthMm={frontSpec.widthMm}
+                  aspect={frontSpec.aspect}
+                  rimInches={frontSpec.rimInches}
+                  sidewallMm={frontGeom.sidewallMm}
+                  rimMm={frontGeom.rimMm}
+                  diameterMm={frontGeom.nominalDiameterMm}
+                  isRear={false}
+                />
+                <ScalableTireSchematicSVG
+                  title={`NEUMÁTICO TRASERO ${variant === "standard" ? "ESTÁNDAR" : "OPCIÓN 1"}`}
+                  specKey={rearSpec.key}
+                  widthMm={rearSpec.widthMm}
+                  aspect={rearSpec.aspect}
+                  rimInches={rearSpec.rimInches}
+                  sidewallMm={rearGeom.sidewallMm}
+                  rimMm={rearGeom.rimMm}
+                  diameterMm={rearGeom.nominalDiameterMm}
+                  isRear={true}
+                />
+              </div>
+
+              {/* Tabla comparativa completa de las 4 configuraciones homologadas */}
+              <div className="all-tires-comparison-bar">
+                <div className="comparison-item">
+                  <span className="eyebrow">DELANTERO ESTÁNDAR</span>
+                  <strong>540/65 R34</strong>
+                  <small>Ancho: 540 mm · Perfil: 351 mm · Llanta: 863,6 mm · Ø ≈ 1.566 mm</small>
+                </div>
+                <div className="comparison-item">
+                  <span className="eyebrow">TRASERO ESTÁNDAR</span>
+                  <strong>650/85 R38</strong>
+                  <small>Ancho: 650 mm · Perfil: 552,5 mm · Llanta: 965,2 mm · Ø ≈ 2.070 mm</small>
+                </div>
+                <div className="comparison-item">
+                  <span className="eyebrow">OPCIÓN 1 — DELANTERO</span>
+                  <strong>600/70 R30</strong>
+                  <small>Ancho: 600 mm · Perfil: 420 mm · Llanta: 762,0 mm · Ø ≈ 1.602 mm</small>
+                </div>
+                <div className="comparison-item">
+                  <span className="eyebrow">OPCIÓN 1 — TRASERO</span>
+                  <strong>710/70 R42</strong>
+                  <small>Ancho: 710 mm · Perfil: 497 mm · Llanta: 1.066,8 mm · Ø ≈ 2.061 mm</small>
+                </div>
+              </div>
             </div>
-            <div className="comparison-item">
-              <span className="eyebrow">TRASERO ESTÁNDAR</span>
-              <strong>650/85 R38</strong>
-              <small>Ancho: 650 mm · Perfil: 552,5 mm · Llanta: 965,2 mm · Ø ≈ 2.070 mm</small>
-            </div>
-            <div className="comparison-item">
-              <span className="eyebrow">OPCIÓN 1 — DELANTERO</span>
-              <strong>600/70 R30</strong>
-              <small>Ancho: 600 mm · Perfil: 420 mm · Llanta: 762,0 mm · Ø ≈ 1.602 mm</small>
-            </div>
-            <div className="comparison-item">
-              <span className="eyebrow">OPCIÓN 1 — TRASERO</span>
-              <strong>710/70 R42</strong>
-              <small>Ancho: 710 mm · Perfil: 497 mm · Llanta: 1.066,8 mm · Ø ≈ 2.061 mm</small>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Láminas Esquemáticas Oficiales (Tractor + Neumáticos) */}
-        <div className="reference-sheet-panel">
-          <div className="reference-header">
+        {/* Láminas Esquemáticas Oficiales (COMO DESPLEGABLE) */}
+        <div className="reference-sheet-panel collapsible-panel">
+          <div
+            className="reference-header collapsible-header"
+            onClick={() => setShowReferenceSheet((v) => !v)}
+            role="button"
+            tabIndex={0}
+            aria-expanded={showReferenceSheet}
+          >
             <div>
               <span className="eyebrow">LÁMINAS ESQUEMÁTICAS DE REFERENCIA (FICHA TÉCNICA OFICIAL)</span>
               <h3>Esquema de dimensiones del tractor y lámina verificada de neumáticos</h3>
             </div>
-            <button className="toggle-sheet-btn" onClick={() => setShowReferenceSheet((v) => !v)}>
-              {showReferenceSheet ? "Ocultar láminas de referencia" : "Mostrar láminas de referencia"}
+            <button
+              type="button"
+              className={`toggle-sheet-btn collapsible-trigger ${showReferenceSheet ? "open" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowReferenceSheet((v) => !v);
+              }}
+            >
+              <span>{showReferenceSheet ? "Ocultar láminas de referencia" : "Desplegar láminas de referencia"}</span>
+              <ChevronDown size={15} className={showReferenceSheet ? "rot" : ""} />
             </button>
           </div>
 
