@@ -179,6 +179,9 @@
 .hud-terrain-btn:hover{border-color:var(--mint);background:#1a3529}
 .hud-terrain-btn.road.active{background:linear-gradient(135deg,#b47b38,#8c5820);border-color:#f5be6b;color:#fff8eb;box-shadow:0 0 12px rgba(245,190,107,.35)}
 .hud-terrain-btn.pasture.active{background:linear-gradient(135deg,#2e8538,#4fb83b);border-color:#b7f789;color:#f4ffef;box-shadow:0 0 12px rgba(119,224,90,.4)}
+.hud-plow-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 8px;border-radius:7px;border:1px solid #594432;background:#241911;color:#f2decb;font-size:10px;font-weight:800;transition:.16s}
+.hud-plow-btn:hover{border-color:#d4975b;background:#362417}
+.hud-plow-btn.active{background:linear-gradient(135deg,#4f2e16,#2c180a);border-color:#f5a65b;color:#fff5ea;box-shadow:0 0 12px rgba(245,166,91,.4)}
 .hud-terrain-reset{padding:4px 6px;border-radius:6px;border:1px dashed #3d634d;background:rgba(15,31,24,.75);color:#b5d6be;font-size:9.5px;font-weight:700}
 .hud-terrain-reset:hover{border-color:var(--mint);color:#fff}
 

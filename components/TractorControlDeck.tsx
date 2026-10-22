@@ -47,6 +47,8 @@ type Props = {
   setTerrainMode: React.Dispatch<React.SetStateAction<TerrainMode>>;
   dayMode: boolean;
   setDayMode: React.Dispatch<React.SetStateAction<boolean>>;
+  plowingActive: boolean;
+  setPlowingActive: React.Dispatch<React.SetStateAction<boolean>>;
   onFocusImplement: () => void;
   viewMode: CameraViewMode;
 };
@@ -79,6 +81,8 @@ export default function TractorControlDeck({
   setTerrainMode,
   dayMode,
   setDayMode,
+  plowingActive,
+  setPlowingActive,
   onFocusImplement,
 }: Props) {
   const [configOpen, setConfigOpen] = useState(false);
@@ -420,6 +424,30 @@ export default function TractorControlDeck({
               <span>Potrero con Plantas</span>
             </button>
           </div>
+          {/* BOTÓN LATERAL PARA APLICAR ARADO CON LOS DISCOS (PINTA EL SUELO EN MODO POTRERO) */}
+          <button
+            type="button"
+            className={`hud-plow-btn ${plowingActive ? "active" : ""}`}
+            onClick={() => {
+              const next = !plowingActive;
+              setPlowingActive(next);
+              if (next) {
+                setRearDiscHidden(false);
+                setRearDiscAssembled(true);
+              }
+            }}
+            title="Activa el arado de discos: cuando el suelo es Potrero con Plantas y el tractor avanza, pinta el suelo de tierra negra/café arada"
+          >
+            <Disc size={13} />
+            <span>
+              {plowingActive
+                ? terrainMode === "pasture"
+                  ? "Arado Activo (Arando Potrero)"
+                  : "Arado Activo (Activa Potrero)"
+                : "Aplicar Arado"}
+            </span>
+          </button>
+
           {terrainMode !== "grid" && (
             <button
               type="button"

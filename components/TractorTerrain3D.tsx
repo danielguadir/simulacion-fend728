@@ -15,6 +15,8 @@ type Props = {
   steerAngle: number;
   spinWheels: boolean;
   frontAxleX: number;
+  plowingActive?: boolean;
+  discCount?: 4 | 6;
 };
 
 /**
@@ -22,7 +24,7 @@ type Props = {
  * Supports 3 modes:
  * - "grid": Technical CAD checkered floor ("Piso en cuadritos")
  * - "road": Rural agricultural track/road with tire ruts, shoulders, dashes & wooden posts ("Camino")
- * - "pasture": Green agricultural pasture with 3D forage plants, crop rows & soil furrows ("Potrero con plantas")
+ * - "pasture": Green agricultural pasture with 3D forage plants, crop rows & dynamic dark plowed soil trail ("Potrero con plantas")
  */
 export default function TractorTerrain3D({
   terrainMode,
@@ -32,9 +34,13 @@ export default function TractorTerrain3D({
   steerAngle,
   spinWheels,
   frontAxleX,
+  plowingActive = false,
+  discCount = 6,
 }: Props) {
   const yawGroupRef = useRef<THREE.Group>(null);
   const scrollGroupRef = useRef<THREE.Group>(null);
+  const plowedStripRef = useRef<THREE.Group>(null);
+  const plowedLengthRef = useRef(0.2);
 
   // 1. Precompute alternating 1m x 1m checkered floor tiles (period = 2.0m, divides 4.0m)
   const checkerTiles = useMemo(() => {
@@ -172,6 +178,23 @@ export default function TractorTerrain3D({
       // Wrap seamlessly modulo 4.0m (exact period of grid, road posts, and pasture plants)
       scrollGroupRef.current.position.x = ((((nextX + 2.0) % 4.0) + 4.0) % 4.0) - 2.0;
       scrollGroupRef.current.position.z = ((((nextZ + 2.0) % 4.0) + 4.0) % 4.0) - 2.0;
+    }
+
+    // Dynamic progressive plowing soil trail (ONLY when terrainMode === "pasture" and plowingActive is true)
+    if (terrainMode === "pasture" && plowingActive) {
+      if (effectiveSpeed > 0.02) {
+        plowedLengthRef.current = Math.min(18.5, plowedLengthRef.current + effectiveSpeed * delta * 2.15);
+      } else if (plowedLengthRef.current < 0.35) {
+        plowedLengthRef.current = 0.35;
+      }
+      if (plowedStripRef.current) {
+        const len = plowedLengthRef.current;
+        plowedStripRef.current.scale.x = len;
+        // Anchor the front edge of the plowed soil strip right at the rear disc gang (X = 3.12m)
+        plowedStripRef.current.position.x = 3.12 + len / 2;
+      }
+    } else {
+      plowedLengthRef.current = 0.2;
     }
   });
 
@@ -333,6 +356,19 @@ export default function TractorTerrain3D({
                 </mesh>
               ))}
 
+              {/* Overturned soil clods scrolling along the plowed path when plowingActive is enabled in Pasture */}
+              {plowingActive &&
+                [-14, -12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12, 14].map((cx, i) => (
+                  <group key={`clod-row-${i}`} position={[cx, 0.014, 0]}>
+                    {[-0.76, -0.45, -0.15, 0.15, 0.45, 0.76].map((cz, j) => (
+                      <mesh key={`clod-${i}-${j}`} position={[((i + j) % 3) * 0.18, 0.018, cz]}>
+                        <dodecahedronGeometry args={[0.055, 0]} />
+                        <meshStandardMaterial color={j % 2 === 0 ? "#1f130b" : "#332012"} roughness={0.98} />
+                      </mesh>
+                    ))}
+                  </group>
+                ))}
+
               {/* 3D Procedural Agricultural Plants, Grass Tufts & Flowering Forage */}
               {pasturePlants.map((p, idx) => (
                 <group
@@ -387,6 +423,64 @@ export default function TractorTerrain3D({
           )}
         </group>
       </group>
+
+      {/* ==================== PROGRESSIVE PLOWED SOIL LAYER (ONLY IN PASTURE WHEN PLOWING IS ACTIVE) ==================== */}
+      {terrainMode === "pasture" && plowingActive && (
+        <group>
+          {/* Expanding dark black/brown plowed soil bed behind the rear discs (X >= 3.12m) */}
+          <group ref={plowedStripRef} position={[3.3, 0.005, 0]} scale={[0.35, 1, 1]}>
+            {/* Main dark overturned earth bed (suelo negro / café húmedo recién arado) */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+              <planeGeometry args={[1, discCount === 6 ? 2.15 : 1.65]} />
+              <meshStandardMaterial color="#1d120a" roughness={0.98} />
+            </mesh>
+
+            {/* Soft dark brown transition edges on left and right of the plowed strip */}
+            {[-1, 1].map((side) => (
+              <mesh
+                key={`plow-edge-${side}`}
+                position={[0, 0.001, side * (discCount === 6 ? 1.12 : 0.86)]}
+                rotation={[-Math.PI / 2, 0, 0]}
+              >
+                <planeGeometry args={[1, 0.18]} />
+                <meshStandardMaterial color="#382415" roughness={0.98} />
+              </mesh>
+            ))}
+
+            {/* Individual deep disc furrow ridges painted behind each disc blade */}
+            {(discCount === 6
+              ? [-0.82, -0.5, -0.17, 0.17, 0.5, 0.82]
+              : [-0.58, -0.19, 0.19, 0.58]
+            ).map((zDisc, idx) => (
+              <group key={`plow-furrow-${idx}`} position={[0, 0.006, zDisc]}>
+                {/* Deep black trench cut by the disc */}
+                <mesh rotation={[-Math.PI / 2, 0, 0]}>
+                  <planeGeometry args={[1, 0.11]} />
+                  <meshStandardMaterial color="#110a05" roughness={1} />
+                </mesh>
+                {/* Raised dark brown soil ridge next to each trench */}
+                <mesh position={[0, 0.015, 0.08]} rotation={[0, 0, Math.PI / 2]}>
+                  <cylinderGeometry args={[0.028, 0.045, 1, 8]} />
+                  <meshStandardMaterial color="#362213" roughness={0.98} />
+                </mesh>
+              </group>
+            ))}
+          </group>
+
+          {/* Active soil turning wave right under the rear discs (X = 3.12m) */}
+          <group position={[3.12, 0.03, 0]}>
+            {(discCount === 6
+              ? [-0.82, -0.5, -0.17, 0.17, 0.5, 0.82]
+              : [-0.58, -0.19, 0.19, 0.58]
+            ).map((zDisc, idx) => (
+              <mesh key={`active-turn-${idx}`} position={[0, 0.02, zDisc]} castShadow>
+                <dodecahedronGeometry args={[0.075, 0]} />
+                <meshStandardMaterial color="#29190e" roughness={0.96} />
+              </mesh>
+            ))}
+          </group>
+        </group>
+      )}
     </group>
   );
 }

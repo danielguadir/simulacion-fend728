@@ -271,6 +271,7 @@ export default function Page() {
   const [discCount, setDiscCount] = useState<DiscCount>(6);
   const [terrainMode, setTerrainMode] = useState<TerrainMode>("grid");
   const [dayMode, setDayMode] = useState(true);
+  const [plowingActive, setPlowingActive] = useState(false);
 
   const spec = useMemo(() => tireFor(axle, variant), [axle, variant]);
   const geom = useMemo(() => tireGeometry(spec), [spec]);
@@ -604,6 +605,7 @@ export default function Page() {
                 discCount={discCount}
                 terrainMode={terrainMode}
                 dayMode={dayMode}
+                plowingActive={plowingActive}
               />
 
               {/* HUD DERECHO DENTRO DEL DIV DEL TRACTOR: BOTÓN ENCENDER + BOTÓN OJO DÍA/NOCHE + RUEDITA DE CONFIGURACIÓN + FLECHAS DE CONDUCCIÓN */}
@@ -628,6 +630,8 @@ export default function Page() {
                 setTerrainMode={setTerrainMode}
                 dayMode={dayMode}
                 setDayMode={setDayMode}
+                plowingActive={plowingActive}
+                setPlowingActive={setPlowingActive}
                 onFocusImplement={() => setViewMode("implement")}
                 viewMode={viewMode}
               />

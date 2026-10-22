@@ -9,6 +9,7 @@ import { asNumber, tireFor, tireGeometry, tractorDimensions } from "@/lib/specs"
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import RearDiscAttachment3D, { DiscCount } from "@/components/RearDiscAttachment3D";
 import TractorTerrain3D, { TerrainMode } from "@/components/TractorTerrain3D";
+import TractorCabinInterior3D from "@/components/TractorCabinInterior3D";
 
 export type CameraViewMode =
   | "iso"
@@ -44,6 +45,7 @@ type Props = {
   discCount: DiscCount;
   terrainMode?: TerrainMode;
   dayMode?: boolean;
+  plowingActive?: boolean;
 };
 
 // Exact official dimensions in meters (1 unit = 1 meter)
@@ -553,36 +555,62 @@ function TractorModel({
             </mesh>
           ))}
 
-          <mesh position={[0.98, 1.95, 0]} castShadow>
-            <boxGeometry args={[0.48, 0.56, 0.52]} />
-            <meshStandardMaterial color="#252c2e" roughness={0.8} wireframe={blueprintMode} />
-          </mesh>
-          <mesh position={[0.42, 2.02, 0]} rotation={[0, 0, -0.5]}>
-            <cylinderGeometry args={[0.18, 0.05, 0.45, 16]} />
-            <meshStandardMaterial color="#1f2526" />
-          </mesh>
+          {/* INTERIOR DETALLADO DE CABINA FENDTONE (SILLA, VOLANTE GIRATORIO, 3 PANTALLAS, CONSOLA Y PALANCA VARIO + ANTENA DE TECHO) */}
+          <TractorCabinInterior3D
+            steerAngle={steerAngle}
+            driveSpeed={driveSpeed}
+            engineOn={engineOn}
+            blueprintMode={blueprintMode}
+            cabinRoofHeight={H_CABIN}
+          />
 
-          {/* Rear Mudguards / Fenders + Rear Tail & Turn Signal Lamps */}
-          {[-0.86, 0.86].map((z, idx) => {
-            const isLeft = z > 0;
+          {/* Guardabarros Traseros Paramétricos (Elevados sobre 2*rRear para que la llanta NUNCA tape ni obstruya el guardabarro) */}
+          {[-1, 1].map((side, idx) => {
+            const isLeft = side === 1;
+            const zFender = side * zRearCenter;
+            const fenderWidth = Math.max(0.58, wRear + 0.06);
+            const topY = rRear * 2 + 0.11; // Siempre 11 cm por encima de la cima del neumático trasero
             const blinkerActive = isLeft ? leftSignalActive : rightSignalActive;
             return (
               <group key={idx}>
-                <mesh position={[1.38, 1.88, z]} rotation={[0, 0, -0.08]} castShadow>
-                  <boxGeometry args={[1.45, 0.12, 0.54]} />
-                  <meshStandardMaterial color={fendtGreen} roughness={0.38} wireframe={blueprintMode} />
+                {/* Arco superior principal del guardabarro trasero */}
+                <mesh position={[X_REAR_AXLE, topY, zFender]} castShadow receiveShadow>
+                  <boxGeometry args={[1.18, 0.085, fenderWidth]} />
+                  <meshStandardMaterial color={fendtGreen} roughness={0.35} wireframe={blueprintMode} />
                 </mesh>
-                {/* Rear Red Tail Light */}
-                <mesh position={[2.08, 1.92, z]}>
-                  <boxGeometry args={[0.05, 0.08, 0.16]} />
+
+                {/* Falda delantera inclinada del guardabarro */}
+                <mesh
+                  position={[X_REAR_AXLE - 0.68, topY - 0.19, zFender]}
+                  rotation={[0, 0, 0.52]}
+                  castShadow
+                >
+                  <boxGeometry args={[0.46, 0.075, fenderWidth]} />
+                  <meshStandardMaterial color={fendtGreen} roughness={0.35} wireframe={blueprintMode} />
+                </mesh>
+
+                {/* Falda trasera inclinada del guardabarro con faldón negro inferior */}
+                <mesh
+                  position={[X_REAR_AXLE + 0.68, topY - 0.19, zFender]}
+                  rotation={[0, 0, -0.52]}
+                  castShadow
+                >
+                  <boxGeometry args={[0.48, 0.08, fenderWidth]} />
+                  <meshStandardMaterial color={fendtGreen} roughness={0.35} wireframe={blueprintMode} />
+                </mesh>
+
+                {/* Rear Red Tail Light (sobre la falda trasera elevada) */}
+                <mesh position={[X_REAR_AXLE + 0.86, topY - 0.25, zFender]}>
+                  <boxGeometry args={[0.055, 0.085, 0.18]} />
                   <meshStandardMaterial
                     color={lightsOn ? "#ff2a2a" : "#4a1c1c"}
                     emissive={lightsOn ? "#ff1e00" : "#000000"}
-                    emissiveIntensity={lightsOn ? 2.5 : 0}
+                    emissiveIntensity={lightsOn ? 2.6 : 0}
                   />
                 </mesh>
+
                 {/* Rear Turn Signal Indicator (Amber) */}
-                <mesh position={[2.08, 1.92, z + (isLeft ? 0.16 : -0.16)]}>
+                <mesh position={[X_REAR_AXLE + 0.86, topY - 0.25, zFender + (isLeft ? 0.18 : -0.18)]}>
                   <boxGeometry args={[0.06, 0.09, 0.14]} />
                   <meshStandardMaterial
                     color={blinkerActive ? "#ffaa00" : "#4a3510"}
@@ -700,7 +728,7 @@ function TractorModel({
         <ExhaustPlume engineOn={engineOn} driveSpeed={driveSpeed} />
       </group>
 
-      {/* 7. FOUR DYNAMICALLY SCALED & STEERABLE WHEELS */}
+      {/* 7. FOUR DYNAMICALLY SCALED & STEERABLE WHEELS + FRONT PIVOTING MUDGUARDS */}
       {[-1, 1].map((side) => (
         <group key={`front-${side}`} position={[X_FRONT_AXLE, rFront, side * zFrontCenter]}>
           <SchematicWheel
@@ -713,6 +741,17 @@ function TractorModel({
             steerAngle={steerAngle}
             highlighted={showTireCotas && side === 1}
           />
+          {/* Guardabarro delantero pivotante (siempre elevado por encima de rFront para no obstruir la llanta) */}
+          <group rotation={[0, steerAngle, 0]}>
+            <mesh position={[0.04, rFront + 0.075, 0]} rotation={[0, 0, -0.06]} castShadow>
+              <boxGeometry args={[0.92, 0.045, wFront + 0.05]} />
+              <meshStandardMaterial color="#1c2224" roughness={0.65} wireframe={blueprintMode} />
+            </mesh>
+            <mesh position={[0.48, rFront - 0.08, 0]} rotation={[0, 0, -0.55]} castShadow>
+              <boxGeometry args={[0.38, 0.04, wFront + 0.05]} />
+              <meshStandardMaterial color="#1c2224" roughness={0.65} wireframe={blueprintMode} />
+            </mesh>
+          </group>
         </group>
       ))}
       {[-1, 1].map((side) => (
@@ -1203,6 +1242,7 @@ export default function TractorSchematic3D({
   discCount,
   terrainMode = "grid",
   dayMode = true,
+  plowingActive = false,
 }: Props) {
   const frontSpec = useMemo(() => tireFor("front", tireVariant), [tireVariant]);
   const rearSpec = useMemo(() => tireFor("rear", tireVariant), [tireVariant]);
@@ -1326,6 +1366,8 @@ export default function TractorSchematic3D({
         steerAngle={steerAngle}
         spinWheels={spinWheels}
         frontAxleX={X_FRONT_AXLE}
+        plowingActive={plowingActive && rearDiscAssembled && !rearDiscHidden}
+        discCount={discCount}
       />
 
       <ContactShadows
