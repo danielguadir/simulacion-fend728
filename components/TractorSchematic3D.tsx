@@ -43,6 +43,7 @@ type Props = {
   rearDiscHidden?: boolean;
   discCount: DiscCount;
   terrainMode?: TerrainMode;
+  dayMode?: boolean;
 };
 
 // Exact official dimensions in meters (1 unit = 1 meter)
@@ -1201,6 +1202,7 @@ export default function TractorSchematic3D({
   rearDiscHidden = false,
   discCount,
   terrainMode = "grid",
+  dayMode = true,
 }: Props) {
   const frontSpec = useMemo(() => tireFor("front", tireVariant), [tireVariant]);
   const rearSpec = useMemo(() => tireFor("rear", tireVariant), [tireVariant]);
@@ -1221,6 +1223,12 @@ export default function TractorSchematic3D({
 
   const sceneBgColor = blueprintMode
     ? "#081715"
+    : dayMode
+    ? terrainMode === "pasture"
+      ? "#cbe4f5"
+      : terrainMode === "road"
+      ? "#d5e6f2"
+      : "#d4e4dc"
     : terrainMode === "pasture"
     ? "#0f1e14"
     : terrainMode === "road"
@@ -1235,18 +1243,26 @@ export default function TractorSchematic3D({
       gl={{ antialias: true, alpha: true }}
     >
       <color attach="background" args={[sceneBgColor]} />
-      <fog attach="fog" args={[sceneBgColor, 11, 24]} />
+      <fog attach="fog" args={[sceneBgColor, dayMode ? 14 : 11, dayMode ? 29 : 24]} />
 
-      <ambientLight intensity={lightsOn ? 0.85 : 1.15} />
+      <ambientLight intensity={dayMode ? 1.75 : lightsOn ? 0.85 : 1.15} />
       <directionalLight
         castShadow
         position={[-7, 11, 8]}
-        intensity={lightsOn ? 2.1 : 2.8}
+        intensity={dayMode ? 3.2 : lightsOn ? 2.1 : 2.8}
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
-      <directionalLight position={[6, 5, -7]} intensity={1.2} color="#b7f0c0" />
-      <hemisphereLight intensity={0.65} groundColor="#1c2d27" />
+      <directionalLight
+        position={[6, 5, -7]}
+        intensity={dayMode ? 1.65 : 1.2}
+        color={dayMode ? "#fff7e0" : "#b7f0c0"}
+      />
+      <hemisphereLight
+        intensity={dayMode ? 1.15 : 0.65}
+        color={dayMode ? "#ffffff" : "#d8f3dc"}
+        groundColor={dayMode ? "#6a8e72" : "#1c2d27"}
+      />
 
       <TractorModel
         showFendtGuide={showFendtGuide}
@@ -1305,6 +1321,7 @@ export default function TractorSchematic3D({
       <TractorTerrain3D
         terrainMode={terrainMode}
         blueprintMode={blueprintMode}
+        dayMode={dayMode}
         driveSpeed={driveSpeed}
         steerAngle={steerAngle}
         spinWheels={spinWheels}

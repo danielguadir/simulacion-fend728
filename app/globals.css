@@ -166,7 +166,11 @@
 .blueprint-summary-badges span{display:block;font-size:10px;color:#9ab59e;margin-bottom:4px}
 .blueprint-summary-badges strong{font-size:17px;color:var(--mint)}
 
-/* Selector de Terreno 3D (Camino Agrícola / Potrero con Plantas / Piso CAD) */
+/* Selector de Terreno 3D (Camino Agrícola / Potrero con Plantas / Piso CAD) + Botón Ojo Día/Noche */
+.hud-eye-daynight-btn{display:flex;align-items:center;gap:5px;padding:7px 10px;border-radius:9px;border:1px solid #355844;background:rgba(16,32,25,.9);color:#e4f7ea;font-size:11px;font-weight:800;box-shadow:0 4px 12px rgba(0,0,0,.35);transition:.18s}
+.hud-eye-daynight-btn:hover{border-color:var(--mint);transform:translateY(-1px)}
+.hud-eye-daynight-btn.day{background:linear-gradient(135deg,#fff8db,#d9f2e1);border-color:#72c752;color:#14361d;box-shadow:0 4px 14px rgba(114,199,82,.35)}
+.hud-eye-daynight-btn.night{background:linear-gradient(135deg,#10231c,#1c382c);border-color:#4b7d60;color:#d6f5e0}
 .hud-terrain-box{margin-top:8px;padding-top:8px;border-top:1px solid rgba(114,185,134,.25);display:flex;flex-direction:column;gap:5px}
 .hud-terrain-label{font-size:8.5px;font-weight:800;letter-spacing:.7px;color:#9dc4a7;text-transform:uppercase}
 .hud-terrain-btns{display:grid;grid-template-columns:1fr 1fr;gap:5px}

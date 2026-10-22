@@ -10,6 +10,7 @@ export type TerrainMode = "grid" | "road" | "pasture";
 type Props = {
   terrainMode: TerrainMode;
   blueprintMode: boolean;
+  dayMode?: boolean;
   driveSpeed: number;
   steerAngle: number;
   spinWheels: boolean;
@@ -26,6 +27,7 @@ type Props = {
 export default function TractorTerrain3D({
   terrainMode,
   blueprintMode,
+  dayMode = true,
   driveSpeed,
   steerAngle,
   spinWheels,
@@ -173,10 +175,10 @@ export default function TractorTerrain3D({
     }
   });
 
-  const cellColor = blueprintMode ? "#1f5444" : "#274139";
-  const sectionColor = blueprintMode ? "#389e77" : "#447451";
-  const majorColor = blueprintMode ? "#5ce1e6" : "#68b653";
-  const tileColor = blueprintMode ? "#0e2922" : "#152621";
+  const cellColor = blueprintMode ? "#1f5444" : dayMode ? "#8eb49c" : "#274139";
+  const sectionColor = blueprintMode ? "#389e77" : dayMode ? "#568f68" : "#447451";
+  const majorColor = blueprintMode ? "#5ce1e6" : dayMode ? "#2f7d32" : "#68b653";
+  const tileColor = blueprintMode ? "#0e2922" : dayMode ? "#bdd6c6" : "#152621";
 
   return (
     <group>
@@ -207,12 +209,18 @@ export default function TractorTerrain3D({
           {/* ==================== MODE 1: CAD CHECKERED GRID ("grid") ==================== */}
           {terrainMode === "grid" && (
             <group>
+              {dayMode && !blueprintMode && (
+                <mesh position={[0, -0.008, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+                  <planeGeometry args={[38, 38]} />
+                  <meshStandardMaterial color="#d8e8df" roughness={0.92} />
+                </mesh>
+              )}
               <gridHelper args={[32, 32, sectionColor, cellColor]} position={[0, 0.001, 0]} />
               <gridHelper args={[32, 16, majorColor, sectionColor]} position={[0, 0.003, 0]} />
               {checkerTiles.map(([tx, tz], idx) => (
                 <mesh key={idx} position={[tx, -0.002, tz]} rotation={[-Math.PI / 2, 0, 0]}>
                   <planeGeometry args={[0.96, 0.96]} />
-                  <meshBasicMaterial color={tileColor} transparent opacity={0.42} />
+                  <meshBasicMaterial color={tileColor} transparent opacity={dayMode ? 0.55 : 0.42} />
                 </mesh>
               ))}
             </group>
@@ -224,23 +232,32 @@ export default function TractorTerrain3D({
               {/* Outer rural earth/grass base plane */}
               <mesh position={[0, -0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
                 <planeGeometry args={[38, 38]} />
-                <meshStandardMaterial color={blueprintMode ? "#0d261f" : "#1f3322"} roughness={0.95} />
+                <meshStandardMaterial
+                  color={blueprintMode ? "#0d261f" : dayMode ? "#4d7c43" : "#1f3322"}
+                  roughness={0.95}
+                />
               </mesh>
 
               {/* Subtle grid overlay for spatial reference */}
-              <gridHelper args={[36, 18, "#3b523e", "#253829"]} position={[0, -0.006, 0]} />
+              <gridHelper
+                args={[36, 18, dayMode ? "#5f8c55" : "#3b523e", dayMode ? "#456e3d" : "#253829"]}
+                position={[0, -0.006, 0]}
+              />
 
               {/* Compacted gravel / rural road bed along X (width = 4.6m) */}
               <mesh position={[0, -0.003, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
                 <planeGeometry args={[38, 4.6]} />
-                <meshStandardMaterial color={blueprintMode ? "#1b3d36" : "#4a4339"} roughness={0.92} />
+                <meshStandardMaterial
+                  color={blueprintMode ? "#1b3d36" : dayMode ? "#8b7d6b" : "#4a4339"}
+                  roughness={0.92}
+                />
               </mesh>
 
               {/* Raised dirt/gravel shoulders on both edges of the road */}
               {[-2.35, 2.35].map((zEdge, i) => (
                 <mesh key={`shoulder-${i}`} position={[0, 0.002, zEdge]} rotation={[-Math.PI / 2, 0, 0]}>
                   <planeGeometry args={[38, 0.35]} />
-                  <meshStandardMaterial color="#695843" roughness={0.95} />
+                  <meshStandardMaterial color={dayMode ? "#a68e70" : "#695843"} roughness={0.95} />
                 </mesh>
               ))}
 
@@ -248,7 +265,7 @@ export default function TractorTerrain3D({
               {[-0.98, 0.98].map((zTrack, i) => (
                 <mesh key={`rut-${i}`} position={[0, 0.001, zTrack]} rotation={[-Math.PI / 2, 0, 0]}>
                   <planeGeometry args={[38, 0.62]} />
-                  <meshStandardMaterial color="#38322a" roughness={0.96} />
+                  <meshStandardMaterial color={dayMode ? "#6d5f4f" : "#38322a"} roughness={0.96} />
                 </mesh>
               ))}
 
@@ -291,14 +308,20 @@ export default function TractorTerrain3D({
               {/* Lush green pasture ground base */}
               <mesh position={[0, -0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
                 <planeGeometry args={[38, 38]} />
-                <meshStandardMaterial color={blueprintMode ? "#0e2c22" : "#214423"} roughness={0.95} />
+                <meshStandardMaterial
+                  color={blueprintMode ? "#0e2c22" : dayMode ? "#3b7a38" : "#214423"}
+                  roughness={0.95}
+                />
               </mesh>
 
               {/* Alternating pasture strips / mowing bands every 2m */}
               {[-14, -10, -6, -2, 2, 6, 10, 14].map((zBand, idx) => (
                 <mesh key={`band-${idx}`} position={[0, -0.006, zBand]} rotation={[-Math.PI / 2, 0, 0]}>
                   <planeGeometry args={[38, 2.0]} />
-                  <meshStandardMaterial color={blueprintMode ? "#12362a" : "#28522a"} roughness={0.95} />
+                  <meshStandardMaterial
+                    color={blueprintMode ? "#12362a" : dayMode ? "#489143" : "#28522a"}
+                    roughness={0.95}
+                  />
                 </mesh>
               ))}
 
@@ -306,7 +329,7 @@ export default function TractorTerrain3D({
               {[-0.75, -0.25, 0.25, 0.75].map((zFurrow, idx) => (
                 <mesh key={`furrow-${idx}`} position={[0, -0.002, zFurrow]} rotation={[-Math.PI / 2, 0, 0]}>
                   <planeGeometry args={[38, 0.18]} />
-                  <meshStandardMaterial color="#3c2f21" roughness={0.98} />
+                  <meshStandardMaterial color={dayMode ? "#5c4732" : "#3c2f21"} roughness={0.98} />
                 </mesh>
               ))}
 

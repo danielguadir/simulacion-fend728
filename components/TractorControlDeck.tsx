@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowDown,
@@ -15,9 +15,11 @@ import {
   Lightbulb,
   Link2,
   Link2Off,
+  Moon,
   Power,
   Settings,
   Square,
+  Sun,
   X,
 } from "lucide-react";
 import type { TurnSignalState, CameraViewMode } from "@/components/TractorSchematic3D";
@@ -43,14 +45,18 @@ type Props = {
   setDiscCount: React.Dispatch<React.SetStateAction<DiscCount>>;
   terrainMode: TerrainMode;
   setTerrainMode: React.Dispatch<React.SetStateAction<TerrainMode>>;
+  dayMode: boolean;
+  setDayMode: React.Dispatch<React.SetStateAction<boolean>>;
   onFocusImplement: () => void;
   viewMode: CameraViewMode;
 };
 
 /**
  * Compact Right-Side HUD & Floating Settings Modal inside the 3D Tractor Viewport:
- * - Minimalist Power button + Gear Settings button (opens modal with Lights & Rear 4/6-Disc Implement)
- * - Compact Arrow D-Pad on the right side for driving & turn signals (WASD / Arrow keys)
+ * - Minimalist Power button + Eye Day/Night button + Gear Settings button
+ * - Momentary & Auto-Centering Driving D-Pad:
+ *   - Holding Forward (↑/W or Up button) moves forward; releasing stops immediately.
+ *   - Pressing Left (←/A) or Right (→/D) nudges slightly left/right (~300ms) and automatically straightens the wheels so the tractor continues straight forward, stopping when Forward is released.
  */
 export default function TractorControlDeck({
   engineOn,
@@ -71,11 +77,101 @@ export default function TractorControlDeck({
   setDiscCount,
   terrainMode,
   setTerrainMode,
+  dayMode,
+  setDayMode,
   onFocusImplement,
 }: Props) {
   const [configOpen, setConfigOpen] = useState(false);
 
-  // Keyboard control listener (Arrows + WASD + Space)
+  // Track active hold states & timers so steering nudges slightly and straightens automatically
+  const forwardHeldRef = useRef(false);
+  const reverseHeldRef = useRef(false);
+  const steerResetTimerRef = useRef<number | null>(null);
+  const driveStopTimerRef = useRef<number | null>(null);
+
+  const clearTimers = useCallback(() => {
+    if (steerResetTimerRef.current !== null) {
+      window.clearTimeout(steerResetTimerRef.current);
+      steerResetTimerRef.current = null;
+    }
+    if (driveStopTimerRef.current !== null) {
+      window.clearTimeout(driveStopTimerRef.current);
+      driveStopTimerRef.current = null;
+    }
+  }, []);
+
+  // Start holding Forward (↑ / W or Up button)
+  const startForward = useCallback(() => {
+    if (driveStopTimerRef.current !== null) {
+      window.clearTimeout(driveStopTimerRef.current);
+      driveStopTimerRef.current = null;
+    }
+    forwardHeldRef.current = true;
+    setEngineOn(true);
+    setDriveSpeed(1.38);
+  }, [setDriveSpeed, setEngineOn]);
+
+  // Release Forward -> Stop immediately
+  const stopForward = useCallback(() => {
+    forwardHeldRef.current = false;
+    if (!reverseHeldRef.current) {
+      setDriveSpeed(0);
+    }
+  }, [setDriveSpeed]);
+
+  // Start holding Reverse (↓ / S or Down button)
+  const startReverse = useCallback(() => {
+    if (driveStopTimerRef.current !== null) {
+      window.clearTimeout(driveStopTimerRef.current);
+      driveStopTimerRef.current = null;
+    }
+    reverseHeldRef.current = true;
+    setEngineOn(true);
+    setDriveSpeed(-0.98);
+  }, [setDriveSpeed, setEngineOn]);
+
+  // Release Reverse -> Stop immediately
+  const stopReverse = useCallback(() => {
+    reverseHeldRef.current = false;
+    if (!forwardHeldRef.current) {
+      setDriveSpeed(0);
+    }
+  }, [setDriveSpeed]);
+
+  // Nudge Left or Right slightly, then automatically straighten wheels and continue straight ahead
+  const triggerSteerNudge = useCallback(
+    (direction: "left" | "right") => {
+      clearTimers();
+      setEngineOn(true);
+
+      const angle = direction === "left" ? 0.42 : -0.42;
+      setSteerAngle(angle);
+      setTurnSignal(direction);
+
+      // Ensure tractor moves forward during the nudge
+      if (!reverseHeldRef.current) {
+        setDriveSpeed(1.38);
+      }
+
+      // After 300ms of slight turn, straighten wheels (steerAngle = 0) so tractor goes straight forward
+      steerResetTimerRef.current = window.setTimeout(() => {
+        setSteerAngle(0);
+        setTurnSignal((prev) => (prev === "hazard" ? "hazard" : "off"));
+
+        // If the user is NOT holding Forward/Reverse, let it advance straight for 450ms and then stop cleanly
+        if (!forwardHeldRef.current && !reverseHeldRef.current) {
+          driveStopTimerRef.current = window.setTimeout(() => {
+            if (!forwardHeldRef.current && !reverseHeldRef.current) {
+              setDriveSpeed(0);
+            }
+          }, 450);
+        }
+      }, 300);
+    },
+    [clearTimers, setDriveSpeed, setEngineOn, setSteerAngle, setTurnSignal]
+  );
+
+  // Keyboard control listener (Arrows + WASD + Space) with keyup auto-stop
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -90,36 +186,35 @@ export default function TractorControlDeck({
         case "w":
         case "W":
           e.preventDefault();
-          setEngineOn(true);
-          setDriveSpeed(1.35);
+          startForward();
           break;
         case "ArrowDown":
         case "s":
         case "S":
           e.preventDefault();
-          setEngineOn(true);
-          setDriveSpeed(-0.95);
+          startReverse();
           break;
         case "ArrowLeft":
         case "a":
         case "A":
           e.preventDefault();
-          setEngineOn(true);
-          setDriveSpeed((prev) => (Math.abs(prev) < 0.05 ? 1.25 : prev));
-          setSteerAngle(0.48);
-          setTurnSignal("left");
+          if (!e.repeat) {
+            triggerSteerNudge("left");
+          }
           break;
         case "ArrowRight":
         case "d":
         case "D":
           e.preventDefault();
-          setEngineOn(true);
-          setDriveSpeed((prev) => (Math.abs(prev) < 0.05 ? 1.25 : prev));
-          setSteerAngle(-0.48);
-          setTurnSignal("right");
+          if (!e.repeat) {
+            triggerSteerNudge("right");
+          }
           break;
         case " ":
           e.preventDefault();
+          clearTimers();
+          forwardHeldRef.current = false;
+          reverseHeldRef.current = false;
           setDriveSpeed(0);
           setSteerAngle(0);
           break;
@@ -128,16 +223,37 @@ export default function TractorControlDeck({
       }
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case "ArrowUp":
+        case "w":
+        case "W":
+          stopForward();
+          break;
+        case "ArrowDown":
+        case "s":
+        case "S":
+          stopReverse();
+          break;
+        default:
+          break;
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setDriveSpeed, setEngineOn, setSteerAngle, setTurnSignal]);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [clearTimers, setDriveSpeed, setSteerAngle, startForward, startReverse, stopForward, stopReverse, triggerSteerNudge]);
 
   const speedKmh = Math.abs(driveSpeed * 11.5).toFixed(1);
   const rpm = engineOn ? (Math.abs(driveSpeed) > 0.1 ? 1550 : 850) : 0;
 
   return (
     <div className="tractor-hud-right" role="region" aria-label="Controles de conducción y configuración del tractor">
-      {/* TOP QUICK ROW: BOTÓN DE ENCENDER + RUEDITA DE CONFIGURACIÓN */}
+      {/* TOP QUICK ROW: BOTÓN DE ENCENDER + BOTÓN OJO (DÍA/NOCHE) + RUEDITA DE CONFIGURACIÓN */}
       <div className="hud-top-actions">
         <button
           type="button"
@@ -146,7 +262,11 @@ export default function TractorControlDeck({
             const next = !engineOn;
             setEngineOn(next);
             if (!next) {
+              clearTimers();
+              forwardHeldRef.current = false;
+              reverseHeldRef.current = false;
               setDriveSpeed(0);
+              setSteerAngle(0);
             }
           }}
           title={engineOn ? `Motor activo (${rpm} RPM) · Clic para apagar` : "Clic para encender el motor"}
@@ -154,6 +274,18 @@ export default function TractorControlDeck({
           <Power size={14} />
           <span>{engineOn ? "Encendido" : "Encender"}</span>
           <small>{engineOn ? `${rpm} RPM` : "OFF"}</small>
+        </button>
+
+        <button
+          type="button"
+          className={`hud-eye-daynight-btn ${dayMode ? "day" : "night"}`}
+          onClick={() => setDayMode((d) => !d)}
+          title={dayMode ? "Vista de Día activa · Clic en el ojo para cambiar a Noche" : "Vista de Noche activa · Clic en el ojo para cambiar a Día"}
+          aria-label="Cambiar entre vista de día y de noche"
+        >
+          <Eye size={14} />
+          {dayMode ? <Sun size={13} /> : <Moon size={13} />}
+          <span>{dayMode ? "Día" : "Noche"}</span>
         </button>
 
         <button
@@ -181,7 +313,7 @@ export default function TractorControlDeck({
         </div>
 
         <div className="hud-dpad-grid">
-          {/* Row 1: Hazard | Forward (Up) | Stop/Center */}
+          {/* Row 1: Hazard | Forward (Hold to move, release to stop) | Stop/Center */}
           <button
             type="button"
             className={`hud-arrow-btn hazard ${turnSignal === "hazard" ? "blinking" : ""}`}
@@ -195,15 +327,14 @@ export default function TractorControlDeck({
           <button
             type="button"
             className={`hud-arrow-btn ${driveSpeed > 0 ? "active-move" : ""}`}
-            onClick={() => {
-              if (driveSpeed > 0) {
-                setDriveSpeed(0);
-              } else {
-                setEngineOn(true);
-                setDriveSpeed(1.35);
-              }
+            onPointerDown={(e) => {
+              e.preventDefault();
+              startForward();
             }}
-            title="Adelante (Flecha Arriba / W)"
+            onPointerUp={stopForward}
+            onPointerLeave={stopForward}
+            onPointerCancel={stopForward}
+            title="Mantén presionado para ir hacia Adelante (suelta para detener)"
           >
             <ArrowUp size={17} />
           </button>
@@ -212,6 +343,9 @@ export default function TractorControlDeck({
             type="button"
             className="hud-arrow-btn stop"
             onClick={() => {
+              clearTimers();
+              forwardHeldRef.current = false;
+              reverseHeldRef.current = false;
               setDriveSpeed(0);
               setSteerAngle(0);
               setTurnSignal("off");
@@ -222,22 +356,15 @@ export default function TractorControlDeck({
             <small>Stop</small>
           </button>
 
-          {/* Row 2: Left | Down (Reverse) | Right */}
+          {/* Row 2: Left (Nudge left + straighten ahead) | Down (Hold Reverse, release to stop) | Right (Nudge right + straighten ahead) */}
           <button
             type="button"
             className={`hud-arrow-btn ${turnSignal === "left" || steerAngle > 0.1 ? "blinking" : ""}`}
-            onClick={() => {
-              if (turnSignal === "left" && steerAngle > 0) {
-                setTurnSignal("off");
-                setSteerAngle(0);
-              } else {
-                setEngineOn(true);
-                if (Math.abs(driveSpeed) < 0.05) setDriveSpeed(1.25);
-                setTurnSignal("left");
-                setSteerAngle(0.48);
-              }
+            onPointerDown={(e) => {
+              e.preventDefault();
+              triggerSteerNudge("left");
             }}
-            title="Direccional y giro Izquierda (Flecha Izquierda / A)"
+            title="Gira un poquito a la Izquierda y continúa recto hacia adelante"
           >
             <ArrowLeft size={17} />
           </button>
@@ -245,15 +372,14 @@ export default function TractorControlDeck({
           <button
             type="button"
             className={`hud-arrow-btn ${driveSpeed < 0 ? "active-move" : ""}`}
-            onClick={() => {
-              if (driveSpeed < 0) {
-                setDriveSpeed(0);
-              } else {
-                setEngineOn(true);
-                setDriveSpeed(-0.95);
-              }
+            onPointerDown={(e) => {
+              e.preventDefault();
+              startReverse();
             }}
-            title="Atrás / Reversa (Flecha Abajo / S)"
+            onPointerUp={stopReverse}
+            onPointerLeave={stopReverse}
+            onPointerCancel={stopReverse}
+            title="Mantén presionado para ir hacia Atrás (suelta para detener)"
           >
             <ArrowDown size={17} />
           </button>
@@ -261,18 +387,11 @@ export default function TractorControlDeck({
           <button
             type="button"
             className={`hud-arrow-btn ${turnSignal === "right" || steerAngle < -0.1 ? "blinking" : ""}`}
-            onClick={() => {
-              if (turnSignal === "right" && steerAngle < 0) {
-                setTurnSignal("off");
-                setSteerAngle(0);
-              } else {
-                setEngineOn(true);
-                if (Math.abs(driveSpeed) < 0.05) setDriveSpeed(1.25);
-                setTurnSignal("right");
-                setSteerAngle(-0.48);
-              }
+            onPointerDown={(e) => {
+              e.preventDefault();
+              triggerSteerNudge("right");
             }}
-            title="Direccional y giro Derecha (Flecha Derecha / D)"
+            title="Gira un poquito a la Derecha y continúa recto hacia adelante"
           >
             <ArrowRight size={17} />
           </button>
